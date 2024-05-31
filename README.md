@@ -1,0 +1,1 @@
+Here a transmitter and reciever script is given. The transmitter script is of an arduino BLE along with an accelerometer which sends data via wifi using TCP protocol to a raspberry pi which is connected to the stepper motors that control continuum robot.
