@@ -1,1 +1,134 @@
+ #include <Wire.h> // This line includes a library called Wire, which allows communication with devices using the I2C protocol.
+
+#include <MPU6050.h> // This line includes a library called MPU6050, which provides functions to interact with the MPU6050 accelerometer and gyroscope module.
+
+#include <WiFiNINA.h> // This line includes a library called WiFiNINA, which allows the Arduino to connect to a Wi-Fi network.
+
+MPU6050 mpu; // This line creates an object named mpu of type MPU6050, which represents the MPU6050 sensor.
+
+char ssid[] = "SVEN"; // This line defines a variable ssid and assigns it the name of the Wi-Fi network to connect to.
+
+char pass[] = "bye12345"; // This line defines a variable pass and assigns it the password of the Wi-Fi network.
+
+char host[] = "192.168.113.241"; // Raspberry Pi's IP address
+
+int port = 8080; // Port number used in Python receiver script
+
+WiFiClient client; // This line creates a client object to handle communication with a server over Wi-Fi.
+
+void setup() {
+
+Serial.begin(9600); // This line initialises serial communication with a baud rate of 9600 bits per second.
+
+while (!Serial); // This line waits until serial communication is established.
+
+
+// Attempt to connect to WiFi network
+
+while (WiFi.status() != WL_CONNECTED) { // This line continuously tries to connect to the Wi-Fi network until a connection is established.
+
+Serial.print("Attempting to connect to SSID: "); // This line prints a message to the serial monitor.
+
+Serial.println(ssid); // This line prints the name of the Wi-Fi network being connected to.
+
+WiFi.begin(ssid, pass); // This line attempts to connect to the Wi-Fi network using the provided ssid and password.
+
+delay(5000); // This line adds a delay of 5000 milliseconds (5 seconds) before trying to connect again.
+
+}
+
+// If connected, print local IP address
+
+Serial.print("Connected to WiFi network with IP address: "); // This line prints a message to the serial monitor.
+
+Serial.println(WiFi.localIP()); // This line prints the local IP address assigned to the Arduino by the Wi-Fi network.
+
+if (!client.connect(host, port))
+{ // This line attempts to connect to a server using the specified host (IP address) and port number.
+
+Serial.println("Connection to server failed!"); // This line prints a message to the serial monitor if the connection to the server fails.
+
+while (1); // This line enters an infinite loop, halting further execution of the program.
+
+}
+
+Wire.begin(); // This line initializes the I2C communication.
+
+mpu.initialize(); // This line initializes the MPU6050 sensor.
+
+
+mpu.setDLPFMode(6); // This line sets the Digital Low Pass Filter (DLPF) mode of the MPU6050.
+
+mpu.CalibrateGyro(); // This line calibrates the gyroscope of the MPU6050.
+
+}
+
+void loop() {
+
+int ax, ay, az, gx, gy, gz; // These lines declare variables to store accelerometer and gyroscope data.
+
+mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz); // This line reads accelerometer and gyroscope data from the MPU6050 sensor.
+
+ float roll = atan2(ay, az) * RAD_TO_DEG; // These lines calculate the roll angle based on accelerometer data.
+
+float pitch = atan2(-ax, sqrt(ay * ay + az * az)) * RAD_TO_DEG; // These lines calculate the pitch angle based on accelerometer data.
+
+float yaw = atan2(gy, sqrt(gx * gx + gz * gz)) * RAD_TO_DEG; // These lines calculate the yaw angle based on gyroscope data.
+
+// Print data to Serial monitor
+
+Serial.print("Roll: "); // This line prints a message to the serial monitor.
+
+Serial.print(roll); // This line prints the roll angle to the serial monitor.
+
+Serial.print(", Pitch: "); // This line prints a message to the serial monitor.
+
+Serial.print(pitch); // This line prints the pitch angle to the serial monitor.
+
+Serial.print(", Yaw: "); // This line prints a message to the serial monitor.
+
+Serial.println(yaw); // This line prints the yaw angle to the serial monitor.
+
+if (client.connected()) { // This line checks if the client is connected to the server.
+
+// Check if roll, pitch, and yaw values are valid
+
+if (!isnan(roll) && !isnan(pitch) && !isnan(yaw)) { // This line checks if the roll, pitch, and yaw angles are valid numbers.
+
+// Send data to server
+
+client.print(roll); // This line sends the roll angle to the server.
+
+client.print(","); // This line sends a comma separator to the server.
+
+client.print(pitch); // This line sends the pitch angle to the server.
+
+client.print(","); // This line sends a comma separator to the server.
+
+client.print(yaw); // This line sends the yaw angle to the server.
+
+client.println(); // This line sends a newline character to the server to mark the end of the data.
+
+} 
+else {
+
+Serial.println("Error: Invalid data"); // This line prints an error message to the serial monitor if the data is invalid.
+
+}
+
+} else {
+
+Serial.println("Connection to server lost. Reconnecting..."); // This line prints a message to the serial monitor if the connection to the server is lost.
+
+if (!client.connect(host, port)) { // This line attempts to reconnect to the server.
+
+Serial.println("Reconnection failed!"); // This line prints a message to the serial monitor if the reconnection fails.
+
+}
+
+}
+
+delay(2000); // Adjust delay as necessary // This line adds a delay of 2000 milliseconds (2 seconds) before executing the loop again.
+
+}
 
